@@ -55,10 +55,10 @@ Para compilar o projeto em wasm utilize o script `./build.sh`
 #### Opção 2 - Manualmente
 Obs: todos os comandos devem ser executos a partir da raiz do projeto.
 ```sh
-# Compila o WASM, que ficara disponível no seguinte diretório:
+# Compila o projeto `wasm-runtime` para WASM
 cargo build -p wasm-runtime --release --target=wasm32-unknown-unknown
 
-# Copiar o binário WASM para a raiz do projeto
+# Copia o binário WASM gerado para a raiz do projeto
 cp ./target/wasm32-unknown-unknown/release/wasm_runtime.wasm ./
 ```
 
@@ -77,13 +77,13 @@ wasm-opt -O3 --dce --precompute --precompute-propagate --optimize-instructions -
 ```
 
 ## Passo 3 - Executar WASM
-Certifique-se que no arquivo `native-executor/src/main.rs` aponta para o arquivo WASM correto na raiz do projeto, você pode utilizar tanto o arquivo `.wat` ou `.wasm`. Então execute o esse projeto para rodar o seu código em WASM.
+Certifique-se que no arquivo `native-executor/src/main.rs` aponta para o arquivo WASM correto na raiz do projeto, você pode utilizar tanto o arquivo `.wat` ou `.wasm`. Então execute o `native-executor` para rodar o seu código em WASM.
 ```sh
 cargo run -p native-executor
 ```
 No final você deve ver o resultado da execusão do seu WebAssembly.
 
-Dicas de estudos:
+**Dicas de estudos:**
 1. Modifique a função `add` no arquivo `wasm-runtime/src/libs.rs`, compile o WASM denovo, e observe como o comportamento muda ao executa-lo novamente.
 2. Crie outras funções no `wasm-runtime` e chame elas a partir do `native-executor`.
 3. Modifique o exemplo para chamar funções do `native-executor` a partir do `wasm-runtime` para você imprimir um "hello world" na tela: https://docs.wasmtime.dev/examples-rust-hello-world.html
