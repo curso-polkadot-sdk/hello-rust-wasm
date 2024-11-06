@@ -23,7 +23,7 @@ rustup target add wasm32-unknown-unknown
 cargo install wasm-opt
 ```
 
-Rode os tests para garantir que esta tudo funcionando:
+Rode os testes para garantir que esta tudo funcionando:
 ```sh
 # Roda os testes de todos os projetos definidos no
 # `Cargo.toml` desse workspace.
@@ -44,7 +44,7 @@ cargo clippy --workspace --tests --all-features -- \
 ```
 
 ## Passo 2 - Compile o WASM
-Nesse passo vamos compilar o `wasm-runtime` WASM para gerar um arquivo `.wasm`, irei listar duas formas diferentes de compilar o código.
+Nesse passo vamos compilar o `wasm-runtime` para gerar um arquivo `.wasm`, há duas formas diferentes de compilar o código.
 
 #### Opção 1 - Usando o build.sh (recomendado)
 Para compilar o projeto em wasm utilize o script `./build.sh`
@@ -53,7 +53,7 @@ Para compilar o projeto em wasm utilize o script `./build.sh`
 ```
 
 #### Opção 2 - Manualmente
-Obs: todos os comandos devem ser executos a partir da raiz do projeto.
+Obs: todos os comandos devem ser executados a partir da raiz do projeto.
 ```sh
 # Compila o projeto `wasm-runtime` para WASM
 cargo build -p wasm-runtime --release --target=wasm32-unknown-unknown
@@ -62,7 +62,7 @@ cargo build -p wasm-runtime --release --target=wasm32-unknown-unknown
 cp ./target/wasm32-unknown-unknown/release/wasm_runtime.wasm ./
 ```
 
-Os passos a seguir são opicionais, necessários só se vc quiser otimizar ou gerar o arquivo `.wat`:
+Os passos a seguir são opcionais, necessários só se quiser otimizar ou gerar o arquivo `.wat`:
 ```sh
 # Otimizar o WASM final com o wasm-opt (também reduz o tamanho do binário)
 wasm-opt -O3 --dce --precompute --precompute-propagate --optimize-instructions --optimize-casts --strip --strip-debug \
@@ -83,6 +83,10 @@ cargo run -p native-executor
 ```
 No final você deve ver o resultado da execusão do seu WebAssembly.
 
+<!-- Para quem esta se perguntando o que da para fazer em WebAssembly, um exemplo é *Ray Tracing* no navegador:
+* https://github.com/rustwasm/wasm-bindgen/tree/main/examples/raytrace-parallel
+* Exemplo onlinehttps://wasm-bindgen.netlify.app/exbuild/raytrace-parallel/ -->
+
 **Dicas de estudos:**
 1. Modifique a função `add` no arquivo `wasm-runtime/src/libs.rs`, compile o WASM denovo, e observe como o comportamento muda ao executa-lo novamente.
 2. Crie outras funções no `wasm-runtime` e chame elas a partir do `native-executor`.
@@ -94,3 +98,7 @@ No final você deve ver o resultado da execusão do seu WebAssembly.
 - Outras linguagens que também compilam para WASM: https://github.com/appcypher/awesome-wasm-langs
 - Tutoriais, compiladores e outras ferramentas para WASM: https://github.com/mbasso/awesome-wasm
 - Projeto que executa WebAssembly em javascript, funciona tanto a partir do Navegador quanto no NodeJS. https://gist.github.com/Lohann/209894dc55ed9eb6bd7b3465ad3a81cc
+- Comparação entre os diferentes WebAssembly runtimes: https://00f.net/2023/01/04/webassembly-benchmark-2023/
+
+wasmtime é considerado o mais seguro:
+> CVEs for quite a few vulnerabilities in wasmtime have been assigned. Some are severe (use after free, out-of-bound accesses, type confusion…) possibly leading to secret disclosure and arbitrary code execution.
