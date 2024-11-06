@@ -27,7 +27,7 @@ Rode os testes para garantir que esta tudo funcionando:
 ```sh
 # Roda os testes de todos os projetos definidos no
 # `Cargo.toml` desse workspace.
-cargo test --workspace
+cargo test -p wasm-runtime
 
 # Formatar os arquivos do projeto (obs: precisa the nightly)
 cargo +nightly fmt
