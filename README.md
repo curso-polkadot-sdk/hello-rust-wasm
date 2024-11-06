@@ -100,5 +100,12 @@ No final você deve ver o resultado da execusão do seu WebAssembly.
 - Projeto que executa WebAssembly em javascript, funciona tanto a partir do Navegador quanto no NodeJS. https://gist.github.com/Lohann/209894dc55ed9eb6bd7b3465ad3a81cc
 - Comparação entre os diferentes WebAssembly runtimes: https://00f.net/2023/01/04/webassembly-benchmark-2023/
 
-wasmtime é considerado o mais seguro:
-> CVEs for quite a few vulnerabilities in wasmtime have been assigned. Some are severe (use after free, out-of-bound accesses, type confusion…) possibly leading to secret disclosure and arbitrary code execution.
+# Outros Runtimes:
+- [wasmtime](https://github.com/bytecodealliance/wasmtime) é considerado o mais seguro, por isso é utilizado no substrate:
+> CVEs for quite a few vulnerabilities in wasmtime have been assigned. Wasmtime did responsible security disclosure after every vulnerability, and went above and beyond to prevent similar vulnerabilities from happening again.
+>
+> Changes are made carefully, and the project is also constantly being fuzzed to discover new bugs.
+>
+> If the intent is to run arbitrary, untrusted code outside a browser environment, wasmtime feels like the most secure option.
+- [wasmer](https://github.com/wasmerio/wasmer) tem o maior ecosistema, mais bibliotecas e ferramentas utilizando ele.
+- [iwasm](https://github.com/bytecodealliance/wasm-micro-runtime/tree/main/product-mini) é o mais rápido, também é bem pequeno (50 KB), e pode ser utilizado para rodar WASM em dispositvos embarcados, como IoT, celular, etc.
