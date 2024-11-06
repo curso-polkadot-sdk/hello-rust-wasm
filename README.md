@@ -100,7 +100,7 @@ No final você deve ver o resultado da execusão do seu WebAssembly.
 - Projeto que executa WebAssembly em javascript, funciona tanto a partir do Navegador quanto no NodeJS. https://gist.github.com/Lohann/209894dc55ed9eb6bd7b3465ad3a81cc
 - Comparação entre os diferentes WebAssembly runtimes: https://00f.net/2023/01/04/webassembly-benchmark-2023/
 
-# Outros Runtimes:
+## Outros Runtimes:
 - [wasmtime](https://github.com/bytecodealliance/wasmtime) é considerado o mais seguro, por isso é utilizado no substrate:
 > CVEs for quite a few vulnerabilities in wasmtime have been assigned. Wasmtime did responsible security disclosure after every vulnerability, and went above and beyond to prevent similar vulnerabilities from happening again.
 >
