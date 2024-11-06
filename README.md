@@ -33,7 +33,7 @@ cargo test --workspace
 cargo +nightly fmt
 
 # Verificar boas práticas no código
-# Obs: pode ser lento dependendo da maquina).
+# Obs: pode ser lento dependendo da maquina.
 cargo clippy --workspace --tests --all-features -- \
     -Dwarnings \
     -Dclippy::unwrap_used \
@@ -46,13 +46,13 @@ cargo clippy --workspace --tests --all-features -- \
 ## Passo 2 - Compile o WASM
 Nesse passo vamos compilar o `wasm-runtime` WASM para gerar um arquivo `.wasm`, irei listar duas formas diferentes de compilar o código.
 
-### Opção 1 - Usando o build.sh (recomendado)
+#### Opção 1 - Usando o build.sh (recomendado)
 Para compilar o projeto em wasm utilize o script `./build.sh`
 ```sh
 ./build.sh
 ```
 
-### Opção 2 - Manualmente
+#### Opção 2 - Manualmente
 Obs: todos os comandos devem ser executos a partir da raiz do projeto.
 ```sh
 # Compila o WASM, que ficara disponível no seguinte diretório:
