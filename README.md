@@ -91,6 +91,6 @@ No final você deve ver o resultado da execusão do seu WebAssembly.
 5. Use a memória para ler strings criadas dentro do webassembly.
 
 ## Material Complementar
-- Outras linguagens que também compilam para WASM: https://developer.fermyon.com/wasm-languages/webassembly-language-support
+- Outras linguagens que também compilam para WASM: https://github.com/appcypher/awesome-wasm-langs
 - Tutoriais, compiladores e outras ferramentas para WASM: https://github.com/mbasso/awesome-wasm
 - Projeto que executa WebAssembly em javascript, funciona tanto a partir do Navegador quanto no NodeJS. https://gist.github.com/Lohann/209894dc55ed9eb6bd7b3465ad3a81cc
