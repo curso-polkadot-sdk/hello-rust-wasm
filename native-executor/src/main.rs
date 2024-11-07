@@ -7,7 +7,6 @@ use wasmtime::{
 // Código WebAssembly em formato de texto.
 const WAT_CODE: &[u8] = include_bytes!("../../wasm_runtime.wat");
 
-
 pub struct State {
     pub memory: Memory,
 }
@@ -39,7 +38,8 @@ impl State {
             // let mut jose = MaybeUninit::<State>::uninit();
             // jose.write(val)
             // let store = std::mem::transmute::<Store<MaybeUninit<State>>, Store<State>>(store);
-            std::ptr::addr_of_mut!(store.data_mut().memory).write(Memory::new(&mut store, memory_type)?);
+            std::ptr::addr_of_mut!(store.data_mut().memory)
+                .write(Memory::new(&mut store, memory_type)?);
         }
 
         Ok(store)
