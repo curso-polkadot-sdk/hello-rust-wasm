@@ -86,8 +86,11 @@ fn main() -> anyhow::Result<()> {
     let mut store = State::new(&engine, memory_type)?;
 
     // Define uma função que pode ser chamada pelo WebAssembly.
+    // - `offset` é o endereço de memória onde a string começa.
+    // - `len` é o tamanho da string em bytes.
+    // obs: A string deve estar encodada em utf-8.
     #[allow(clippy::cast_possible_truncation)]
-    let hello_func = Func::wrap(&mut store, |caller: Caller<'_, State>, offset: u32, len: u32| {
+    let console_log_func = Func::wrap(&mut store, |caller: Caller<'_, State>, offset: u32, len: u32| {
         // Convert o `Caller` para um contexto, que utilizaremos para ler a memória.
         let ctx = caller.as_context();
 
@@ -114,7 +117,7 @@ fn main() -> anyhow::Result<()> {
 
     // Imports do módulo WebAssembly.
     let memory = store.data().memory;
-    let imports = [memory.into(), hello_func.into()];
+    let imports = [memory.into(), console_log_func.into()];
 
     // Cria uma instância do módulo WebAssembly
     let instance = Instance::new(&mut store, &module, &imports)?;
