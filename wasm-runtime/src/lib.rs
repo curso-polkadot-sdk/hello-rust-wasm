@@ -10,6 +10,7 @@ unsafe fn panic(_info: &core::panic::PanicInfo) -> ! {
     core::arch::wasm32::unreachable()
 }
 
+// Código externo que deve ser importado no webassembly.
 #[cfg(target_arch = "wasm32")] // Only available when compiling to WebAssembly.
 pub mod ext {
     #[link(wasm_import_module = "env")] // Add the import to the "env" namespace.
@@ -19,6 +20,7 @@ pub mod ext {
     }
 }
 
+// Código nativo, utilizado apenas para testes.
 #[cfg(not(target_arch = "wasm32"))]
 pub mod ext {
     #[allow(clippy::missing_safety_doc)]
@@ -29,8 +31,6 @@ pub mod ext {
         }
     }
 }
-
-// static MESSAGE: &str = "hello, world!";
 
 /// Logs a message to the console.
 fn log(message: &'static str) {
