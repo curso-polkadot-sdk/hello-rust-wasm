@@ -5,5 +5,4 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.91"
-# wasmtime = { version = "26.0.0", default-features = false, features = ["cache", "cranelift", "wat", "parallel-compilation", "pooling-allocator"] }
-wasmtime = { version = "26.0.0" }
+wasmtime = { version = "26.0.1", default-features = false, features = ["cache", "cranelift", "wat", "parallel-compilation", "pooling-allocator"] }
