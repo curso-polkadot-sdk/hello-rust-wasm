@@ -1,22 +1,26 @@
+use std::mem::MaybeUninit;
+
 use wasmtime::{Config, Engine, Instance, Module, OptLevel, Memory, MemoryType, Caller, Func, Store, AsContext};
 
 // Código WebAssembly em formato de texto.
 const WAT_CODE: &[u8] = include_bytes!("../../wasm_runtime.wat");
 
 struct State {
-    memory: std::mem::MaybeUninit<Memory>,
+    // `MaybeUninit` é utilizado para inicializar o estado com um valor nulo.
+    // Ex: A depende de B, e B depende de A, então é necessário inicializar um dos dois com um valor nulo.
+    memory: MaybeUninit<Memory>,
 }
 
 impl State {
     #[must_use]
     pub const fn new() -> Self {
         Self {
-            memory: std::mem::MaybeUninit::uninit(),
+            memory: MaybeUninit::uninit(),
         }
     }
 
     pub fn init(&mut self, memory: Memory) {
-        self.memory = std::mem::MaybeUninit::new(memory);
+        self.memory = MaybeUninit::new(memory);
     }
 
     pub const fn memory(&self) -> &Memory {
