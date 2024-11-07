@@ -16,7 +16,7 @@ impl State {
     /// Inicializa o estado, store e memória.
     pub fn new(engine: &Engine, memory_type: MemoryType) -> anyhow::Result<Store<Self>> {
         // O `Store` precisa do `State` para ser criado, e a memória precisa do `Store` para ser
-        // criada, e o `State` precisa da memória, logo temos um dependencia cíclica, para
+        // criada, e o `State` precisa da memória, logo temos uma dependencia cíclica, para
         // resolver esse dilema o rust nos fornece o tipo `MaybeUninit`, que é utilizado
         // para inicializar um valor com um valor "nulo" que é parecido com um `null`, porém
         // dever ser utilizado com cuidado, depois de criado pode inicializar o `State`.
@@ -25,7 +25,7 @@ impl State {
         // - https://doc.rust-lang.org/std/mem/union.MaybeUninit.html
         #[allow(clippy::uninit_assumed_init)]
         let state = Self {
-            // SAFETY: A memória será inicializada corretamente abaixo.
+            // SAFETY: A `memory` será inicializada corretamente abaixo.
             memory: unsafe { MaybeUninit::<Memory>::zeroed().assume_init() },
         };
 
