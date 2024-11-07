@@ -1,10 +1,29 @@
-use core::str;
-use std::usize;
-
 use wasmtime::{Config, Engine, Instance, Module, OptLevel, Memory, MemoryType, Caller, Func, Store, AsContext};
 
 // Código WebAssembly em formato de texto.
 const WAT_CODE: &[u8] = include_bytes!("../../wasm_runtime.wat");
+
+struct State {
+    memory: std::mem::MaybeUninit<Memory>,
+}
+
+impl State {
+    #[must_use]
+    pub const fn new() -> Self {
+        Self {
+            memory: std::mem::MaybeUninit::uninit(),
+        }
+    }
+
+    pub fn init(&mut self, memory: Memory) {
+        self.memory = std::mem::MaybeUninit::new(memory);
+    }
+
+    pub const fn memory(&self) -> &Memory {
+        // SAFETY: `memory` foi inicializado.
+        unsafe { self.memory.assume_init_ref() }
+    }
+}
 
 fn main() -> anyhow::Result<()> {
     ////////////////////////////////////////
@@ -35,7 +54,7 @@ fn main() -> anyhow::Result<()> {
 
     // Inicia um Store, utilizado para compartilhar um estado entre
     // o host e o WebAssembly. (não é necessário para este exemplo)
-    let mut store = Store::new(&engine, ());
+    let mut store = Store::new(&engine, State::new());
 
     // Configura a memória que será utilizada pelo WebAssembly.
     //
@@ -46,16 +65,17 @@ fn main() -> anyhow::Result<()> {
     let memory_type = MemoryType::new(2, Some(16));
     let memory = Memory::new(&mut store, memory_type)?;
 
+    // Inicializa o estado com a memória criada.
+    store.data_mut().init(memory);
+
     // Define uma função que pode ser chamada pelo WebAssembly.
     #[allow(clippy::cast_possible_truncation)]
-    let hello_func = Func::wrap(&mut store, move |caller: Caller<'_, ()>, offset: u32, len: u32| {
-        // Captura o `memory` para que possamos ler a memória de dentro dessa função.
-        // Obs: só é possível capturar quando a closure é anotada com `move`.
-        // veja: https://doc.rust-lang.org/book/ch13-01-closures.html#closure-type-inference-and-annotation
-        let memory = memory;
-
+    let hello_func = Func::wrap(&mut store, |caller: Caller<'_, State>, offset: u32, len: u32| {
         // Convert o `Caller` para um contexto, que utilizaremos para ler a memória.
         let ctx = caller.as_context();
+
+        // Le a memória do host.
+        let memory = ctx.data().memory();
 
         // Define o intervalo de memória que será lido.
         let start = usize::try_from(offset).unwrap_or(usize::MAX);
@@ -67,7 +87,7 @@ fn main() -> anyhow::Result<()> {
         };
 
         // Converte os bytes lidos para uma string utf-8.
-        let Ok(string) = str::from_utf8(data) else {
+        let Ok(string) = std::str::from_utf8(data) else {
             anyhow::bail!("invalid utf-8 string");
         };
 
