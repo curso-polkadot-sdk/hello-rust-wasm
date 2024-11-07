@@ -82,12 +82,12 @@ fn main() -> anyhow::Result<()> {
         let end = start.saturating_add(len as usize);
 
         // Verifica se o intervalo de memória está dentro dos limites da memória.
-        let Some(data) = memory.data(&ctx).get(start..end) else {
+        let Some(bytes) = memory.data(&ctx).get(start..end) else {
             anyhow::bail!("out of bounds memory access");
         };
 
         // Converte os bytes lidos para uma string utf-8.
-        let Ok(string) = std::str::from_utf8(data) else {
+        let Ok(string) = std::str::from_utf8(bytes) else {
             anyhow::bail!("invalid utf-8 string");
         };
 
