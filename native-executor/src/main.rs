@@ -77,7 +77,7 @@ fn main() -> anyhow::Result<()> {
     //
     // Cada página tem 64KB, aqui foi configurado 2 página de memória, que pode ser
     // expandido para no máximo 16 páginas pelo código. É possível expandir a memória
-    // chamando de dentro do webassembly o método `core::arch::wasm32::memory.grow`.
+    // chamando de dentro do webassembly o método `core::arch::wasm32::memory_grow`.
     // ref: https://doc.rust-lang.org/core/arch/wasm32/fn.memory_grow.html
     let memory_type = MemoryType::new(2, Some(16));
 
