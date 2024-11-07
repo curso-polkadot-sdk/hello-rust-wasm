@@ -35,11 +35,8 @@ impl State {
         // Agora podemos criar a memória e inicializar o `State`.
         // Ref: https://doc.rust-lang.org/std/mem/union.MaybeUninit.html#initializing-a-struct-field-by-field
         unsafe {
-            // let mut jose = MaybeUninit::<State>::uninit();
-            // jose.write(val)
-            // let store = std::mem::transmute::<Store<MaybeUninit<State>>, Store<State>>(store);
-            std::ptr::addr_of_mut!(store.data_mut().memory)
-                .write(Memory::new(&mut store, memory_type)?);
+            let ptr = std::ptr::addr_of_mut!(store.data_mut().memory);
+            ptr.write(Memory::new(&mut store, memory_type)?);
         }
 
         Ok(store)
@@ -90,30 +87,31 @@ fn main() -> anyhow::Result<()> {
     // - `len` é o tamanho da string em bytes.
     // obs: A string deve estar encodada em utf-8.
     #[allow(clippy::cast_possible_truncation)]
-    let console_log_func = Func::wrap(&mut store, |caller: Caller<'_, State>, offset: u32, len: u32| {
-        // Convert o `Caller` para um contexto, que utilizaremos para ler a memória.
-        let ctx = caller.as_context();
+    let console_log_func =
+        Func::wrap(&mut store, |caller: Caller<'_, State>, offset: u32, len: u32| {
+            // Convert o `Caller` para um contexto, que utilizaremos para ler a memória.
+            let ctx = caller.as_context();
 
-        // Define o intervalo de memória que será lido.
-        let start = usize::try_from(offset).unwrap_or(usize::MAX);
-        let end = start.saturating_add(len as usize);
+            // Define o intervalo de memória que será lido.
+            let start = usize::try_from(offset).unwrap_or(usize::MAX);
+            let end = start.saturating_add(len as usize);
 
-        // Verifica se o intervalo de memória está dentro dos limites da memória.
-        let Some(bytes) = ctx.data().memory.data(&ctx).get(start..end) else {
-            anyhow::bail!("out of bounds memory access");
-        };
+            // Verifica se o intervalo de memória está dentro dos limites da memória.
+            let Some(bytes) = ctx.data().memory.data(&ctx).get(start..end) else {
+                anyhow::bail!("out of bounds memory access");
+            };
 
-        // Converte os bytes lidos para uma string utf-8.
-        let Ok(string) = std::str::from_utf8(bytes) else {
-            anyhow::bail!("invalid utf-8 string");
-        };
+            // Converte os bytes lidos para uma string utf-8.
+            let Ok(string) = std::str::from_utf8(bytes) else {
+                anyhow::bail!("invalid utf-8 string");
+            };
 
-        // Imprime a string.
-        println!("{string}");
+            // Imprime a string.
+            println!("{string}");
 
-        // Retorna Ok(()) para indicar que a closure foi executada com sucesso.
-        Ok(())
-    });
+            // Retorna Ok(()) para indicar que a closure foi executada com sucesso.
+            Ok(())
+        });
 
     // Imports do módulo WebAssembly.
     let memory = store.data().memory;
