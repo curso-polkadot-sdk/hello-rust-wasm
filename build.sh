@@ -85,6 +85,9 @@ WASM_OPT_OPTIONS=(
     # --unsubtyping
 )
 
+# Remove existing `wasm_runtime.wasm` and `wasm_runtime.wat` files
+rm ./wasm_runtime.wasm ./wasm_runtime.wat 2> /dev/null || true
+
 # Create the `wasm_runtime.wasm` file (binary format)
 wasm-opt \
     "${WASM_OPT_OPTIONS[@]}" \
