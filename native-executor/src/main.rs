@@ -1,12 +1,21 @@
 use std::mem::MaybeUninit;
 
 use wasmtime::{
-    AsContext, Caller, Config, Engine, Func, Instance, Memory, MemoryType, Module, OptLevel, Store,
+    AsContext, Caller, Config, Engine, Func, Instance, InstanceAllocationStrategy, Memory,
+    MemoryType, Module, OptLevel, PoolingAllocationConfig, ProfilingStrategy, Store,
 };
 
 // Código WebAssembly em formato de texto.
 const WAT_CODE: &[u8] = include_bytes!("../../wasm_runtime.wat");
 
+const MEGABYTE: usize = 1024 * 1024;
+const WASM_PAGE_SIZE: u64 = 65536;
+const MAX_WASM_PAGES: u64 = 0x10000;
+const MAX_INSTANCE_COUNT: u32 = 8;
+#[allow(clippy::cast_possible_truncation)]
+const MAX_MEMORY_SIZE: usize = MAX_WASM_PAGES.saturating_mul(WASM_PAGE_SIZE) as usize;
+
+/// Estado da instância
 pub struct State {
     pub memory: Memory,
 }
@@ -47,20 +56,55 @@ fn main() -> anyhow::Result<()> {
     ////////////////////////////////////////
     // Configura o compilador WebAssembly //
     ////////////////////////////////////////
+    // Referencia:
+    // https://github.com/paritytech/polkadot-sdk/blob/polkadot-stable2509-rc3/substrate/client/executor/wasmtime/src/runtime.rs#L219-L279
+    // https://github.com/paritytech/polkadot-sdk/blob/polkadot-stable2509-rc4/substrate/client/executor/src/wasm_runtime.rs#L304-L323
+
     let mut config = Config::new();
     // Otimize para velocidade e tamanho.
     config.cranelift_opt_level(OptLevel::SpeedAndSize);
+
+    // Configura o tamanho máximo da stack para 4 megabytes.
+    config.max_wasm_stack(4 * MEGABYTE);
+    config.wasm_stack_switching(false);
+    config.wasm_reference_types(false);
+
+    // Desativa algumas o suporte a Garbage Collector
+    config.gc_support(false);
+    config.wasm_gc(false);
+
     // Desativa algumas features opicionais do WebAssembly.
     config.cranelift_nan_canonicalization(false);
-    config.wasm_tail_call(false);
+    config.wasm_simd(false);
     config.parallel_compilation(true);
+    config.wasm_relaxed_simd(false);
+    config.relaxed_simd_deterministic(false);
+    config.wasm_bulk_memory(false);
     config.wasm_multi_value(false);
     config.wasm_multi_memory(false);
-    config.wasm_bulk_memory(true);
-    // config.wasm_reference_types(false);
-    // config.wasm_threads(false);
-    config.wasm_relaxed_simd(false);
-    config.wasm_simd(false);
+    config.wasm_threads(false);
+    config.wasm_memory64(false);
+    config.wasm_tail_call(false);
+    config.wasm_extended_const(false);
+    config.profiler(ProfilingStrategy::None);
+
+    // Configura os limites de memória por instância
+    config.memory_guaranteed_dense_image_size(u64::MAX);
+    let mut pooling_config = PoolingAllocationConfig::default();
+    pooling_config
+        .max_unused_warm_slots(4)
+        //   size: 32384
+        //   table_elements: 1249
+        //   memory_pages: 2070
+        .max_core_instance_size(512 * 1024)
+        .table_elements(8192)
+        .max_memory_size(MAX_MEMORY_SIZE)
+        .total_tables(MAX_INSTANCE_COUNT)
+        .total_memories(MAX_INSTANCE_COUNT)
+        // Determina quantas instâncias no máximo podem existir
+        // em paralello desse mesmo módulo.
+        .total_core_instances(MAX_INSTANCE_COUNT);
+    config.allocation_strategy(InstanceAllocationStrategy::Pooling(pooling_config));
 
     // Configura a Engine com as opções definidas.
     let engine = Engine::new(&config)?;

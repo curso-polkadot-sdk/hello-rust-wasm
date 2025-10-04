@@ -1,5 +1,10 @@
+[workspace.package]
+authors = ["Lohann Paterno Coutinho Ferreira <developer@lohann.dev>"]
+edition = "2021"
+repository = "https://github.com/curso-polkadot-sdk/hello-rust-wasm.git"
+
 [workspace]
-members = [ "native-executor","wasm-runtime"]
+members = ["native-executor", "wasm-runtime"]
 resolver = "2"
 
 [profile.release]

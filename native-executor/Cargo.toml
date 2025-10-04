@@ -1,8 +1,14 @@
 [package]
 name = "native-executor"
 version = "0.1.0"
-edition = "2021"
+authors.workspace = true
+edition.workspace = true
+repository.workspace = true
+description = "Native code that executes the WASM runtime"
 
 [dependencies]
-anyhow = "1.0.91"
-wasmtime = { version = "26.0.1", default-features = false, features = ["cache", "cranelift", "wat", "parallel-compilation", "pooling-allocator"] }
+anyhow = "1.0.100"
+
+# Reference:
+# https://github.com/paritytech/polkadot-sdk/blob/polkadot-stable2509-rc4/substrate/client/executor/wasmtime/Cargo.toml#L32-L42
+wasmtime = { version = "37.0.1", default-features = false, features = ["addr2line", "cache", "cranelift", "demangle", "gc", "gc-null", "wat", "parallel-compilation", "pooling-allocator", "threads"] }
