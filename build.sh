@@ -56,6 +56,7 @@ WASM_OPT_OPTIONS=(
     --low-memory-unused
     --optimize-added-constants
     --optimize-added-constants-propagate
+    --enable-bulk-memory-opt
     --simplify-globals-optimizing
     --inlining-optimizing
     --once-reduction
@@ -98,11 +99,17 @@ wasm-opt \
 # step 3 - Convert from binary (.wasm) to text (.wat) #
 #######################################################
 # Create the `wasm_runtime.wat` file (text format)
+# wasm-opt \
+#     "${WASM_OPT_OPTIONS[@]}" \
+#     --emit-text \
+#     --output ./wasm_runtime.wat \
+#     ./target/wasm32-unknown-unknown/release/wasm_runtime.wasm
+
 wasm-opt \
     "${WASM_OPT_OPTIONS[@]}" \
     --emit-text \
     --output ./wasm_runtime.wat \
-    ./target/wasm32-unknown-unknown/release/wasm_runtime.wasm
+    ./wasm_runtime.wasm
 
 # Print the `wasm_runtime.wat` file
 printf "\n%s\n" '--------------- WAT CODE ---------------'
