@@ -241,7 +241,7 @@ fn main() -> anyhow::Result<()> {
 
     // Serializa uma struct para envia-la para o WebAssembly.
     let (offset, length) = {
-        // Serializa o tipo `Point` em um vetor de bytes
+        // Serializa o tipo `Message` em um vetor de bytes
         let memory_mut = store.data().memory();
         let message =
             Message { kind: MessageKind::Ping, message: BoundedString::from("message from host") };
@@ -249,11 +249,11 @@ fn main() -> anyhow::Result<()> {
         println!("mensagem: {message:?}");
         println!("encodada: {}", const_hex::encode_prefixed(&encoded));
 
-        // Escreve o `Point` encodado na memoria do WebAssembly
+        // Escreve a mensagem encodada na memoria do WebAssembly
         let ptr = 128;
         memory_mut.write(&mut store, ptr, &encoded)?;
 
-        // Retorna onde inicia o "POINT", e o tamanho dele em bytes.
+        // Indica onde inicia a mensagem e o seu tamanho em bytes.
         let ptr = u32::try_from(ptr)?;
         let len = u32::try_from(encoded.len())?;
         (ptr, len)
