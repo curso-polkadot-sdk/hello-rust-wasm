@@ -4,7 +4,7 @@ mod utils;
 use std::mem::MaybeUninit;
 
 use parity_scale_codec::Encode;
-use wasm_types::{BoundedString, Kind as MessageKind, Message};
+use wasm_types::{BoundedString, Sender as MessageSender, Message};
 use wasmtime::{
     AsContext, Caller, Config, Engine, Extern, Func, InstanceAllocationStrategy, Linker, Memory,
     MemoryType, Module, OptLevel, PoolingAllocationConfig, ProfilingStrategy, Store,
@@ -235,7 +235,7 @@ fn main() -> anyhow::Result<()> {
     // Extrai a função `call` do módulo WebAssembly //
     //////////////////////////////////////////////////
     // obs: veja o código WebAssembly em `wasm_runtime/src/lib.rs` para
-    // entender como a função `add` foi definida.
+    // entender como a função `call` foi definida.
     let export_name = "call";
     let run = instance.get_typed_func::<(u32, u32), u32>(&mut store, export_name)?;
 
@@ -243,7 +243,7 @@ fn main() -> anyhow::Result<()> {
     let (offset, length) = {
         // Serializa o tipo `Message` em um vetor de bytes
         let message =
-            Message { kind: MessageKind::Ping, message: BoundedString::from("message from host") };
+            Message { sender: MessageSender::Host, message: BoundedString::from("message from host") };
         let encoded = message.encode();
         println!("mensagem: {message:?}");
         println!("encodada: {}", const_hex::encode_prefixed(&encoded));
