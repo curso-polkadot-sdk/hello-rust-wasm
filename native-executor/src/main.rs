@@ -242,7 +242,6 @@ fn main() -> anyhow::Result<()> {
     // Serializa uma struct para envia-la para o WebAssembly.
     let (offset, length) = {
         // Serializa o tipo `Message` em um vetor de bytes
-        let memory_mut = store.data().memory();
         let message =
             Message { kind: MessageKind::Ping, message: BoundedString::from("message from host") };
         let encoded = message.encode();
@@ -251,6 +250,7 @@ fn main() -> anyhow::Result<()> {
 
         // Escreve a mensagem encodada na memoria do WebAssembly
         let ptr = 128;
+        let memory_mut = store.data().memory();
         memory_mut.write(&mut store, ptr, &encoded)?;
 
         // Indica onde inicia a mensagem e o seu tamanho em bytes.
