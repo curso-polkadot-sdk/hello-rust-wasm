@@ -1,0 +1,14 @@
+[package]
+name = "wasm-types"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+repository.workspace = true
+
+[dependencies]
+parity-scale-codec = { workspace = true }
+tinyvec = { version = "1.10.0", features = [] }
+
+[features]
+default = ["std"]
+std = ["parity-scale-codec/std"]

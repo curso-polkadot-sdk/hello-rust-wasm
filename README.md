@@ -21,7 +21,7 @@ rustup target add wasm32-unknown-unknown
 
 # Instalar o `wasm-opt`, utilizado para gerar o arquivo .wat,
 # também otimiza e reduz o tamanho do seu código WASM final.
-cargo install wasm-opt
+cargo install wasm-opt --version 0.116.1 --force
 ```
 
 Rode os testes para garantir que esta tudo funcionando:

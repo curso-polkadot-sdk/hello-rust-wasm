@@ -1,7 +1,10 @@
+#![allow(clippy::missing_errors_doc)]
 mod utils;
 
 use std::mem::MaybeUninit;
 
+use parity_scale_codec::Encode;
+use wasm_types::{BoundedString, Kind as MessageKind, Message};
 use wasmtime::{
     AsContext, Caller, Config, Engine, Extern, Func, InstanceAllocationStrategy, Linker, Memory,
     MemoryType, Module, OptLevel, PoolingAllocationConfig, ProfilingStrategy, Store,
@@ -23,6 +26,7 @@ const WASM_PAGE_SIZE: u64 = 65536;
 const MAX_WASM_PAGES: u64 = 0x10000;
 
 // Quantidade máxima de memória em bytes que pode ser utilizado pelo WASM.
+#[allow(clippy::cast_possible_truncation)]
 const MAX_MEMORY_SIZE: usize = MAX_WASM_PAGES.saturating_mul(WASM_PAGE_SIZE) as usize;
 
 // Número máximo de "instancias" que podem rodar em paralelo.
@@ -86,6 +90,11 @@ impl State {
 
         Ok(store)
     }
+
+    #[must_use]
+    pub const fn memory(&self) -> Memory {
+        self.memory
+    }
 }
 
 fn main() -> anyhow::Result<()> {
@@ -116,7 +125,7 @@ fn main() -> anyhow::Result<()> {
     config.wasm_simd(false);
     config.wasm_relaxed_simd(false);
     config.relaxed_simd_deterministic(false);
-    config.wasm_bulk_memory(false);
+    config.wasm_bulk_memory(true);
     config.wasm_multi_value(false);
     config.wasm_multi_memory(false);
     config.wasm_threads(false);
@@ -219,6 +228,44 @@ fn main() -> anyhow::Result<()> {
     println!("Chamando o método {export_name:?}...");
     println!("---------------------------------------------");
     let result = run.call(&mut store, (15, 10))?;
+    println!("---------------------------------------------");
+    println!("result = {result}\n\n");
+
+    //////////////////////////////////////////////////
+    // Extrai a função `call` do módulo WebAssembly //
+    //////////////////////////////////////////////////
+    // obs: veja o código WebAssembly em `wasm_runtime/src/lib.rs` para
+    // entender como a função `add` foi definida.
+    let export_name = "call";
+    let run = instance.get_typed_func::<(u32, u32), u32>(&mut store, export_name)?;
+
+    // Serializa uma struct para envia-la para o WebAssembly.
+    let (offset, length) = {
+        // Serializa o tipo `Point` em um vetor de bytes
+        let memory_mut = store.data().memory();
+        let message =
+            Message { kind: MessageKind::Ping, message: BoundedString::from("message from host") };
+        let encoded = message.encode();
+        println!("mensagem: {message:?}");
+        println!("encodada: {}", const_hex::encode_prefixed(&encoded));
+
+        // Escreve o `Point` encodado na memoria do WebAssembly
+        let ptr = 128;
+        memory_mut.write(&mut store, ptr, &encoded)?;
+
+        // Retorna onde inicia o "POINT", e o tamanho dele em bytes.
+        let ptr = u32::try_from(ptr)?;
+        let len = u32::try_from(encoded.len())?;
+        (ptr, len)
+    };
+
+    ///////////////////////////
+    // Chama a função `call` //
+    ///////////////////////////
+    println!();
+    println!("Chamando o método {export_name:?}...");
+    println!("---------------------------------------------");
+    let result = run.call(&mut store, (offset, length))?;
     println!("---------------------------------------------");
     println!("result = {result}");
     Ok(())

@@ -8,7 +8,10 @@ description = "Native code that executes the WASM runtime"
 
 [dependencies]
 anyhow = "1.0.100"
+wasm-types = { workspace = true }
+parity-scale-codec = { workspace = true }
 
 # Reference:
 # https://github.com/paritytech/polkadot-sdk/blob/polkadot-stable2509-rc4/substrate/client/executor/wasmtime/Cargo.toml#L32-L42
 wasmtime = { version = "37.0.1", default-features = false, features = ["addr2line", "cache", "cranelift", "demangle", "gc", "gc-null", "wat", "parallel-compilation", "pooling-allocator", "threads"] }
+const-hex = { version = "1.17.0" }

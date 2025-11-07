@@ -1,17 +1,28 @@
 // Disable `std` library and `main` entrypoint, because they are not available in WebAssembly.
 // OBS: `std` and `main` are only available when running tests.
-#![cfg_attr(all(target_arch = "wasm32", not(test)), no_std, no_main)]
+#![cfg_attr(all(target_arch = "wasm32", not(test), not(feature = "std")), no_std, no_main)]
+
+use const_hex as hex;
+use dlmalloc::GlobalDlmalloc;
+use parity_scale_codec::Decode;
+use wasm_types::Message;
+
+#[macro_use]
+extern crate alloc;
+
+#[global_allocator]
+static mut ALLOC: GlobalDlmalloc = GlobalDlmalloc;
 
 // Override the default panic handler when compilling to WebAssembly.
 // Reference: https://doc.rust-lang.org/nomicon/panic-handler.html
-#[cfg(target_arch = "wasm32")]
+#[cfg(all(target_arch = "wasm32", not(feature = "std")))]
 #[panic_handler]
 unsafe fn panic(_info: &core::panic::PanicInfo) -> ! {
     core::arch::wasm32::unreachable()
 }
 
 // Código externo que deve ser importado no webassembly.
-#[cfg(target_arch = "wasm32")] // Only available when compiling to WebAssembly.
+#[cfg(all(target_arch = "wasm32", not(feature = "std")))] // Only available when compiling to WebAssembly.
 pub mod ext {
     #[link(wasm_import_module = "env")] // Add the import to the "env" namespace.
     extern "C" {
@@ -21,7 +32,7 @@ pub mod ext {
 }
 
 // Código nativo, utilizado apenas para testes.
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(any(feature = "std", not(target_arch = "wasm32")))]
 pub mod ext {
     #[allow(clippy::missing_safety_doc)]
     pub unsafe fn console_log(ptr: *const u8, len: u32) {
@@ -33,7 +44,7 @@ pub mod ext {
 }
 
 /// Logs a message to the console.
-fn log(message: &'static str) {
+fn log(message: &str) {
     unsafe {
         #[allow(clippy::cast_possible_truncation)]
         ext::console_log(message.as_ptr(), message.len() as u32);
@@ -42,9 +53,36 @@ fn log(message: &'static str) {
 
 /// Adds two numbers.
 #[no_mangle]
-pub extern "C" fn add(a: u32, b: u32) -> u32 {
+#[allow(clippy::missing_safety_doc)]
+pub unsafe extern "C" fn add(a: u32, b: u32) -> u32 {
     log("hello, world!");
     a + b
+}
+
+/// Indica se a call foi processada com sucesso ou não.
+const OK: u32 = 1;
+const FAILURE: u32 = 0;
+
+/// Le e decoda uma struct enviada pelo Host.
+#[no_mangle]
+#[allow(clippy::missing_safety_doc)]
+pub unsafe extern "C" fn call(ptr: *const u8, len: u32) -> u32 {
+    // Transforma um o pointeiro em slice.
+    let mut bytes = core::slice::from_raw_parts(ptr, len as usize);
+
+    // Imprime os bytes em hexadecimal.
+    log(format!("recebido: {}", hex::encode_prefixed(bytes)).as_str());
+
+    // Tenta decodar a mensagem.
+    let Ok(point) = Message::decode(&mut bytes) else {
+        log("não foi possível decodar a mensagem.");
+        return FAILURE;
+    };
+
+    // Imprime a mensagem.
+    let message = format!("mensagem: {point:?}");
+    log(message.as_str());
+    OK
 }
 
 #[cfg(test)]
@@ -52,7 +90,7 @@ mod tests {
     use super::*;
     #[test]
     fn test_add() {
-        let result = add(1, 2);
+        let result = unsafe { add(1, 2) };
         assert_eq!(result, 3);
     }
 }
