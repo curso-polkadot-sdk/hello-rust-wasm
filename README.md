@@ -2,26 +2,30 @@
 
 Projeto demonstrando como compilar um código em rust para WebAssembly, e como executar esse binário também utilizando rust em um projeto separado. Esse workspace é composto de dois projetos:
 
-- `wasm-runtime`: Código `no_std` que pode ser compilado para WebAssembly (a.k.a. `wasm32-unknown-unknown`)
+- `wasm-runtime`: Código `no_std` que pode ser compilado para WebAssembly (a.k.a. `wasm32v1-none`)
 - `native-executor`: Aplicação nativa que compila e executa o código WebAssembly.
 
 ## Passo 1 - Dependencias
 
 - Certifique que o Rust esta instalado na sua maquina.
-- Instale o target para WASM `rustup target add wasm32-unknown-unknown`
+- Instale o target para WASM `rustup target add wasm32v1-none`
 - Instale o otimizador de WASM `cargo install wasm-opt`
 
 ```sh
 # Instalar Rust
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
-# Instalar o target `wasm32-unknown-unknown`, para o rust
+# Instalar o target `wasm32v1-none`, para o rust
 # ser capaz de compilar seu código para WASM.
-rustup target add wasm32-unknown-unknown
+rustup target add wasm32v1-none
 
-# Instalar o `wasm-opt`, utilizado para gerar o arquivo .wat,
-# também otimiza e reduz o tamanho do seu código WASM final.
-cargo install wasm-opt
+# Instalar o `wasm-opt`, utilizado otimizar e
+# reduzir o tamanho do seu código WASM final.
+cargo install wasm-opt --version 0.116.1 --locked --force
+
+# Instalar o `wasm-tools`, utilizado para você conseguir
+# ler o código WebAssembly gerando um arquivo .wat
+cargo install wasm-tools --version 1.240.0 --locked --force
 ```
 
 Rode os testes para garantir que esta tudo funcionando:
@@ -63,10 +67,14 @@ Obs: todos os comandos devem ser executados a partir da raiz do projeto.
 
 ```sh
 # Compila o projeto `wasm-runtime` para WASM
-cargo build -p wasm-runtime --release --target=wasm32-unknown-unknown
+set CARGO_ENCODED_RUSTFLAGS=$'-Clink-arg=-zstack-size=65536\037-Clink-arg=--import-memory\037-Ctarget-feature=+mutable-globals,-atomics,-bulk-memory,-crt-static,-exception-handling,-extended-const,-multivalue,-nontrapping-fptoint,-reference-types,-relaxed-simd,-sign-ext,-simd128,-tail-call,-wide-arithmetic';\
+set SOURCE_DATE_EPOCH='1600000000';\
+set TZ='UTC';\
+set LC_ALL='C';\
+cargo build --package=wasm-runtime --profile=release --target=wasm32v1-none --no-default-features
 
 # Copia o binário WASM gerado para a raiz do projeto
-cp ./target/wasm32-unknown-unknown/release/wasm_runtime.wasm ./
+cp ./target/wasm32v1-none/release/wasm_runtime.wasm ./
 ```
 
 Os passos a seguir são opcionais, necessários só se quiser otimizar ou gerar o arquivo `.wat`:
@@ -75,13 +83,13 @@ Os passos a seguir são opcionais, necessários só se quiser otimizar ou gerar 
 # Otimizar o WASM final com o wasm-opt (também reduz o tamanho do binário)
 wasm-opt -O3 --dce --precompute --precompute-propagate --optimize-instructions --optimize-casts --strip --strip-debug \
     --output ./wasm_runtime.wasm \
-    ./target/wasm32-unknown-unknown/release/wasm_runtime.wasm
+    ./target/wasm32v1-none/release/wasm_runtime.wasm
 
 # Gerar o arquivo .WAT (WASM legível em formato texto)
 wasm-opt -O3 --dce --precompute --precompute-propagate --optimize-instructions --optimize-casts --strip --strip-debug \
     --emit-text \
     --output ./wasm_runtime.wat \
-    ./target/wasm32-unknown-unknown/release/wasm_runtime.wasm
+    ./wasm_runtime.wasm
 ```
 
 ## Passo 3 - Executar WASM
@@ -101,10 +109,9 @@ No final você deve ver o resultado da execusão do seu WebAssembly.
 **Dicas de estudos:**
 
 1. Modifique a função `add` no arquivo `wasm-runtime/src/libs.rs`, compile o WASM denovo, e observe como o comportamento muda ao executa-lo novamente.
-2. Crie outras funções no `wasm-runtime` e chame elas a partir do `native-executor`.
-3. Modifique o exemplo para chamar funções do `native-executor` a partir do `wasm-runtime` para você imprimir um "hello world" na tela: https://docs.wasmtime.dev/examples-rust-hello-world.html
-4. Siga o exemplo na documentação do wasmtime para fornecer uma quantidade de memória finita para seu WASM: https://docs.wasmtime.dev/examples-rust-memory.html
-5. Use a memória para ler strings criadas dentro do webassembly.
+2. Crie outras funções no `wasm-runtime` e chame elas a partir do `native-executor`: https://docs.wasmtime.dev/examples-rust-hello-world.html
+3. Aprenda a utilizar a memória linear enviando uma `struct` do `native-executor` para o `wasm-runtime` e vice-versa: https://docs.wasmtime.dev/examples-memory.html
+4. Tente rodar o seu código no navegador: https://developer.mozilla.org/pt-BR/docs/WebAssembly/Guides/Using_the_JavaScript_API
 
 ## Material Complementar
 
