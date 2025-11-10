@@ -77,11 +77,28 @@ semver_le() {
     return 1
 }
 
-# Check if rustc versions is greater or equal than 1.84.
+# Make sure we are in workspace root directory
+cd "$(dirname "${0}")"
+
+# For Rust >= 1.70 and Rust < 1.84 with `wasm32-unknown-unknown` target,
+# it's required to disable default WASM features:
+# - `sign-ext` (since Rust 1.70)
+# - `multivalue` and `reference-types` (since Rust 1.82)
+#
+# For Rust >= 1.84, we use `wasm32v1-none` target
+# (disables all "post-MVP" WASM features except `mutable-globals`):
+# - https://doc.rust-lang.org/beta/rustc/platform-support/wasm32v1-none.html
+# 
+# Also see:
+# https://blog.rust-lang.org/2024/09/24/webassembly-targets-change-in-default-target-features.html#disabling-on-by-default-webassembly-proposals
 rustc_version="$(cargo --version | head -n1 | awk '{ print $2 }')"
-RUST_TARGET='wasm32-unknown-unknown'
+
 if semver_le '1.84.0' "${rustc_version}"; then
     RUST_TARGET='wasm32v1-none'
+    rust_toolchain="${rustc_version}"
+else
+    RUST_TARGET='wasm32-unknown-unknown'
+    rust_toolchain="nightly-2025-11-09"
 fi
 echo "rust version: ${rustc_version}"
 echo "      target: ${RUST_TARGET}"
@@ -89,11 +106,8 @@ echo "      target: ${RUST_TARGET}"
 # Check if the target `wasm32v1-none` or `wasm32-unknown-unknown` is installed
 if ! rustup target list | grep -q "${RUST_TARGET}"; then
   echo "Installing the target with rustup '${RUST_TARGET}'"
-  rustup target add "${RUST_TARGET}"
+  rustup target add "${RUST_TARGET}" --toolchain "${rust_toolchain}"
 fi
-
-# Make sure we are in workspace root directory
-cd "$(dirname "${0}")"
 
 ####################################################################
 # STEP 1: Build the project with the wasm32-unknown-unknown target #
@@ -143,10 +157,14 @@ RUST_WASM_FLAGS=(
     '-Dwarnings'
 )
 
+rustc_extra_args=()
 if [ "${RUST_TARGET}" = "wasm32-unknown-unknown" ]; then
     # List of custom flags to pass to all compiler invocations that Cargo performs.
     RUST_WASM_FLAGS+=('-Ctarget-cpu=mvp')
-    # -Zbuild-std=core,alloc
+    rustc_extra_args+=("+${rust_toolchain}")
+    if [[ "${rust_toolchain}" == nightly* ]]; then
+        rustc_extra_args+=('-Zbuild-std=core,alloc')
+    fi
 fi
 
 # Separated flags by 0x1f (ASCII Unit Separator)
@@ -162,6 +180,7 @@ RUST_BUILD_VARS=(
 
 RUST_BUILD_CMD=(
     'cargo'
+    "${rustc_extra_args[@]}"
     'build'
     '--package=wasm-runtime'
     '--profile=release'
@@ -176,6 +195,7 @@ printf '     COMMAND:\n%s\\\n%s\n\n' \
 
 CARGO_ENCODED_RUSTFLAGS="${RUST_WASM_FLAGS}" \
     cargo \
+    "${rustc_extra_args[@]}" \
     build \
     --package=wasm-runtime \
     --profile=release \
