@@ -6,7 +6,7 @@ edition.workspace = true
 repository.workspace = true
 
 [dependencies]
-parity-scale-codec = { workspace = true }
+parity-scale-codec = { workspace = true, features = ["derive"] }
 tinyvec = { version = "1.10.0", features = [] }
 
 [dev-dependencies]

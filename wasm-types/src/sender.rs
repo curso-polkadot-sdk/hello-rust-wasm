@@ -19,15 +19,12 @@ impl Display for Sender {
 
 #[cfg(test)]
 mod tests {
+    use super::Sender;
     use parity_scale_codec::{DecodeAll, Encode};
-    use super::{Sender};
 
     #[test]
     fn encode_decode_works() {
-        let tests = [
-            (Sender::Host, "Host"),
-            (Sender::Wasm, "Wasm"),
-        ];
+        let tests = [(Sender::Host, "Host"), (Sender::Wasm, "Wasm")];
         for (sender, display) in tests {
             let encoded = sender.encode();
             let decoded = Sender::decode_all(&mut encoded.as_ref()).unwrap();

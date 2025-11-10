@@ -1,4 +1,6 @@
 [toolchain]
 channel = "1.90.0"
-components = ["rust-src", "rust-analyzer", "clippy"]
-targets = ["wasm32-unknown-unknown"]
+# channel = "nightly-2025-11-09"
+components = ["rust-src", "rustfmt", "rust-analyzer", "clippy"]
+targets = ["wasm32-unknown-unknown", "wasm32v1-none"]
+profile = "minimal"

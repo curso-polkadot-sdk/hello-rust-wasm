@@ -1,45 +1,57 @@
 // Disable `std` library and `main` entrypoint, because they are not available in WebAssembly.
 // OBS: `std` and `main` are only available when running tests.
-#![cfg_attr(all(target_arch = "wasm32", not(test), not(feature = "std")), no_std, no_main)]
+#![cfg_attr(not(feature = "std"), no_std, no_main)]
 
 use const_hex as hex;
-use dlmalloc::GlobalDlmalloc;
 use parity_scale_codec::Decode;
 use wasm_types::Message;
 
+#[cfg(not(feature = "std"))]
 #[macro_use]
 extern crate alloc;
 
+#[cfg(not(feature = "std"))]
 #[global_allocator]
-static mut ALLOC: GlobalDlmalloc = GlobalDlmalloc;
+static mut ALLOC: dlmalloc::GlobalDlmalloc = dlmalloc::GlobalDlmalloc;
 
-// Override the default panic handler when compilling to WebAssembly.
+// Override the default panic handler when compiling to WebAssembly.
 // Reference: https://doc.rust-lang.org/nomicon/panic-handler.html
-#[cfg(all(target_arch = "wasm32", not(feature = "std")))]
+#[cfg(all(
+    not(feature = "std"),
+    target_arch = "wasm32",
+    any(target_os = "unknown", target_os = "none")
+))]
 #[panic_handler]
 unsafe fn panic(_info: &core::panic::PanicInfo) -> ! {
-    core::arch::wasm32::unreachable()
+    core::arch::wasm32::unreachable();
 }
 
-// Código externo que deve ser importado no webassembly.
-#[cfg(all(target_arch = "wasm32", not(feature = "std")))] // Only available when compiling to WebAssembly.
+// Código externo
 pub mod ext {
-    #[link(wasm_import_module = "env")] // Add the import to the "env" namespace.
+    // import to the "env" namespace.
+    #[cfg(target_family = "wasm")] // Only available when compiling to WebAssembly.
+    #[link(wasm_import_module = "env")]
     extern "C" {
         #[allow(clippy::missing_safety_doc)]
         pub fn console_log(ptr: *const u8, len: u32);
-    }
-}
 
-// Código nativo, utilizado apenas para testes.
-#[cfg(any(feature = "std", not(target_arch = "wasm32")))]
-pub mod ext {
+        pub fn get_input(ptr: *mut u8, len: &mut u32);
+    }
+
+    #[cfg(not(target_family = "wasm"))]
     #[allow(clippy::missing_safety_doc)]
     pub unsafe fn console_log(ptr: *const u8, len: u32) {
         let slice = core::slice::from_raw_parts(ptr, len as usize);
         if let Ok(message) = core::str::from_utf8(slice) {
             println!("{message}");
         }
+    }
+
+    #[cfg(not(target_family = "wasm"))]
+    #[allow(clippy::missing_safety_doc)]
+    #[allow(clippy::missing_const_for_fn)]
+    pub unsafe fn get_input(_ptr: *mut u8, len: &mut u32) {
+        *len = 0;
     }
 }
 
@@ -66,15 +78,29 @@ const FAILURE: u32 = 0;
 /// Le e decoda uma struct enviada pelo Host.
 #[no_mangle]
 #[allow(clippy::missing_safety_doc)]
-pub unsafe extern "C" fn call(ptr: *const u8, len: u32) -> u32 {
+pub unsafe extern "C" fn call(input_size: u32) -> u32 {
+    // Alloca espaço na Heap
+    // 8192 capacity 8192
+    let mut input = vec![0u8; input_size as usize];
+    let mut length = input_size;
+    {
+        let buffer = input.as_mut_slice();
+        ext::get_input(buffer.as_mut_ptr(), &mut length);
+    }
+    if length as usize > input.len() {
+        return FAILURE;
+    }
+    // 200 capacity 8192
+    input.set_len(length as usize);
+
     // Transforma um o pointeiro em slice.
-    let mut bytes = core::slice::from_raw_parts(ptr, len as usize);
+    // let mut bytes = core::slice::from_raw_parts(ptr, len as usize);
 
     // Imprime os bytes em hexadecimal.
-    log(format!("recebido: {}", hex::encode_prefixed(bytes)).as_str());
+    log(format!("recebido: {}", hex::encode_prefixed(&input)).as_str());
 
     // Tenta decodar a mensagem.
-    let Ok(point) = Message::decode(&mut bytes) else {
+    let Ok(point) = Message::decode(&mut input.as_ref()) else {
         log("não foi possível decodar a mensagem.");
         return FAILURE;
     };

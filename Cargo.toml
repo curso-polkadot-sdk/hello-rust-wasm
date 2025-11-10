@@ -9,7 +9,7 @@ resolver = "2"
 
 [workspace.dependencies]
 wasm-types = { path = "./wasm-types", default-features = false }
-parity-scale-codec = { version = "3.7.5", default-features = false, features = ["derive"] }
+parity-scale-codec = { version = "3.7.5", default-features = false }
 
 [profile.release]
 opt-level = 3

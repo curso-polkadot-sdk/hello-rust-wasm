@@ -1,3 +1,5 @@
+# cargo-features = ["per-package-target"]
+
 [package]
 name = "wasm-runtime"
 version = "1.0.0"
@@ -5,10 +7,16 @@ authors.workspace = true
 edition.workspace = true
 repository.workspace = true
 description = "WASM runtime code"
+# default-target = "wasm32-unknown-unknown"
 
 [lib]
 name = "wasm_runtime"
+path = "src/lib.rs"
 crate-type = ["cdylib"]
+test = true
+bench = false
+doc = true
+proc-macro = false
 
 [dependencies]
 dlmalloc = { version = "0.2.11", features = ["global"] }
@@ -22,5 +30,5 @@ const-hex = { version = "1.17.0", default-features = false, features = ["alloc"]
 # rand = { version = "0.8.4" }
 
 [features]
-default = []
+default = ["std"]
 std = ["wasm-types/std"]

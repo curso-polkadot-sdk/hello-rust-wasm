@@ -15,7 +15,6 @@ pub const CHAR_LIMIT: usize = 127;
 
 /// Checks that `ch` byte is the first byte in a UTF-8 code point
 /// sequence.
-#[inline]
 #[allow(clippy::cast_possible_wrap)]
 const fn is_utf8_char_boundary(ch: u8) -> bool {
     // This is bit magic equivalent to: b < 128 || b >= 192

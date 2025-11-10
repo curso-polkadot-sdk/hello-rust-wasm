@@ -4,10 +4,11 @@ mod utils;
 use std::mem::MaybeUninit;
 
 use parity_scale_codec::Encode;
-use wasm_types::{BoundedString, Sender as MessageSender, Message};
+use wasm_types::{Message, Sender as MessageSender};
 use wasmtime::{
-    AsContext, Caller, Config, Engine, Extern, Func, InstanceAllocationStrategy, Linker, Memory,
-    MemoryType, Module, OptLevel, PoolingAllocationConfig, ProfilingStrategy, Store,
+    AsContext, AsContextMut, Caller, Config, Engine, Extern, Func, InstanceAllocationStrategy,
+    Linker, Memory, MemoryType, Module, OptLevel, PoolingAllocationConfig, ProfilingStrategy,
+    Store,
 };
 
 // Código WebAssembly em formato de texto.
@@ -125,7 +126,7 @@ fn main() -> anyhow::Result<()> {
     config.wasm_simd(false);
     config.wasm_relaxed_simd(false);
     config.relaxed_simd_deterministic(false);
-    config.wasm_bulk_memory(true);
+    config.wasm_bulk_memory(false);
     config.wasm_multi_value(false);
     config.wasm_multi_memory(false);
     config.wasm_threads(false);
@@ -205,11 +206,44 @@ fn main() -> anyhow::Result<()> {
             Ok(())
         });
 
+    #[allow(clippy::cast_possible_truncation)]
+    let get_input_func =
+        Func::wrap(&mut store, |mut caller: Caller<'_, State>, offset: u32, len_ptr: u32| {
+            // Recupera o contexto, que utilizaremos para ler a memória.
+            let mut ctx = caller.as_context_mut();
+
+            // Serializa o tipo `Message` em um vetor de bytes
+            let message =
+                Message { sender: MessageSender::Host, message: "message from host".into() };
+            let encoded = message.encode();
+            println!("mensagem: {message:?}");
+            println!("encodada: {}", const_hex::encode_prefixed(&encoded));
+
+            // Escreve a mensagem encodada na memoria do WebAssembly
+            let memory_mut = ctx.data().memory();
+            let mut buffer = [0u8; 4];
+            memory_mut.read(&ctx, len_ptr as usize, &mut buffer)?;
+            let length = u32::from_le_bytes(buffer) as usize;
+
+            // Se tiver espaço, escreva os dados encodados.
+            if length >= encoded.len() {
+                memory_mut.write(&mut ctx, offset as usize, &encoded)?;
+                let buffer = (encoded.len() as u32).to_le_bytes();
+                memory_mut.write(&mut ctx, len_ptr as usize, &buffer)?;
+            } else {
+                memory_mut.write(&mut ctx, len_ptr as usize, &[0u8; 4])?;
+            }
+
+            // Retorna Ok(()) para indicar que essa função foi executada com sucesso.
+            Ok(())
+        });
+
     // Imports do módulo WebAssembly.
     let mut linker = Linker::<State>::new(&engine);
     let memory = Extern::Memory(store.data().memory);
     linker.define(&mut store, "env", "memory", memory)?;
     linker.define(&mut store, "env", "console_log", console_log_func)?;
+    linker.define(&mut store, "env", "get_input", get_input_func)?;
 
     // Cria uma instância do módulo WebAssembly
     let instance = linker.instantiate(&mut store, &module)?;
@@ -237,35 +271,16 @@ fn main() -> anyhow::Result<()> {
     // obs: veja o código WebAssembly em `wasm_runtime/src/lib.rs` para
     // entender como a função `call` foi definida.
     let export_name = "call";
-    let run = instance.get_typed_func::<(u32, u32), u32>(&mut store, export_name)?;
+    let run = instance.get_typed_func::<(u32,), u32>(&mut store, export_name)?;
 
     // Serializa uma struct para envia-la para o WebAssembly.
-    let (offset, length) = {
-        // Serializa o tipo `Message` em um vetor de bytes
-        let message =
-            Message { sender: MessageSender::Host, message: BoundedString::from("message from host") };
-        let encoded = message.encode();
-        println!("mensagem: {message:?}");
-        println!("encodada: {}", const_hex::encode_prefixed(&encoded));
-
-        // Escreve a mensagem encodada na memoria do WebAssembly
-        let ptr = 128;
-        let memory_mut = store.data().memory();
-        memory_mut.write(&mut store, ptr, &encoded)?;
-
-        // Indica onde inicia a mensagem e o seu tamanho em bytes.
-        let ptr = u32::try_from(ptr)?;
-        let len = u32::try_from(encoded.len())?;
-        (ptr, len)
-    };
-
     ///////////////////////////
     // Chama a função `call` //
     ///////////////////////////
     println!();
     println!("Chamando o método {export_name:?}...");
     println!("---------------------------------------------");
-    let result = run.call(&mut store, (offset, length))?;
+    let result = run.call(&mut store, (8196u32,))?;
     println!("---------------------------------------------");
     println!("result = {result}");
     Ok(())
